@@ -1,4 +1,4 @@
-package xyz.webmc.maintenancemotdeagler.base;
+package xyz.webmc.maintenanceeaglerhook.core;
 
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -10,10 +10,12 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import dev.colbster937.reflect.MirrorSafe;
 import eu.kennytv.maintenance.api.Maintenance;
 import eu.kennytv.maintenance.api.MaintenanceProvider;
 import eu.kennytv.maintenance.core.MaintenancePlugin;
 import eu.kennytv.maintenance.core.Settings;
+import eu.kennytv.maintenance.core.config.DisplayedMessages;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -21,17 +23,18 @@ import net.lax1dude.eaglercraft.backend.server.api.event.IEaglercraftMOTDEvent;
 import net.lax1dude.eaglercraft.backend.server.api.query.IMOTDConnection;
 
 @SuppressWarnings({ "rawtypes" })
-public final class MaintenanceMOTDEagler {
+public final class MaintenanceEaglerHook {
   private static final Maintenance api;
   private static final Settings settings;
   private static final MaintenancePlugin mt;
 
-  public static final void handleMOTD(final IMaintenanceMOTDEaglerPlugin plugin, final IEaglercraftMOTDEvent event) {
+  public static final void handleMOTD(final IMaintenanceEaglerHookPluginImpl plugin, final IEaglercraftMOTDEvent event) {
     if (api.isMaintenance()) {
       final IMOTDConnection conn = event.getMOTDConnection();
       boolean changed = false;
       if (settings.isEnablePingMessages()) {
-        final List<String> messages = Mirror.access(settings, "pingMessages");
+        final DisplayedMessages displayedMessages = MirrorSafe.getFieldValue(settings, "pingMessages");
+        final List<String> messages = displayedMessages.getMessages(null);
         final List<String> msgLines = new ArrayList<>();
         if (!messages.isEmpty()) {
           for (final String msg : messages) {
@@ -52,7 +55,8 @@ public final class MaintenanceMOTDEagler {
         changed = true;
       }
       if (settings.hasCustomPlayerCountHoverMessage()) {
-        final List<String> messages = Mirror.access(settings, "legacyParsedPlayerCountHoverLines");
+        final DisplayedMessages displayedMessages = MirrorSafe.getFieldValue(settings, "legacyParsedPlayerCountHoverLines");
+        final List<String> messages = displayedMessages.getMessages(null);
         final List<String> msgLines = new ArrayList<>();
         if (!messages.isEmpty()) {
           for (final String msg : messages) {
@@ -70,11 +74,11 @@ public final class MaintenanceMOTDEagler {
   }
 
   public static final byte[] getDataURIBytes(final String uri) {
-    final String data = uri.substring(uri.indexOf(",") + 1);
+    final String data = uri.substring(uri.indexOf(',') + 1);
     return Base64.getDecoder().decode(data);
   }
 
-  private static final byte[] convertFavicon(final byte[] favicon) {
+  private static byte[] convertFavicon(final byte[] favicon) {
     try {
       BufferedImage img = ImageIO.read(new ByteArrayInputStream(favicon));
       if (img.getWidth() != 64 || img.getHeight() != 64) {
@@ -113,6 +117,6 @@ public final class MaintenanceMOTDEagler {
   static {
     api = MaintenanceProvider.get();
     settings = (Settings) api.getSettings();
-    mt = Mirror.access(settings, "plugin");
+    mt = MirrorSafe.getFieldValue(settings, "plugin");
   }
 }
